@@ -61,7 +61,7 @@ fun createReportExcelForWorker(listDataWP: List<DataWorkerPeriod>, name: String,
 
     secondRow.createCell(0).setCellValue(name)
 
-    var rowIdx = 0
+    var rowIdx: Int
     var finishedTotal = 0.0
     var unfinishedTotal = 0.0
     for (data in listDataWP) {
@@ -121,11 +121,14 @@ fun createReportExcelForWorker(listDataWP: List<DataWorkerPeriod>, name: String,
     rowForUnfinishedPrice.createCell(1).setCellValue(unfinishedTotal)
     rowForTotalPrice.createCell(1).setCellValue(totalPrice)
 
-    File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по сотрудникам\\${LocalDate.now().year}").mkdir()
-    val fileOut = FileOutputStream("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по сотрудникам\\${LocalDate.now().year}\\$name $dataLeft-$dataRight.xlsx")
+    val desk = System.getProperty("user.home") + File.separator + "Desktop"
+    File("$desk${File.separator}Отчеты").mkdir()
+    File("$desk${File.separator}Отчеты${File.separator}Отчеты по сотрудникам").mkdir()
+    File("$desk${File.separator}Отчеты${File.separator}Отчеты по сотрудникам${File.separator}${LocalDate.now().year}").mkdir()
+    val fileOut = FileOutputStream("$desk${File.separator}Отчеты${File.separator}Отчеты по сотрудникам${File.separator}${LocalDate.now().year}${File.separator}$name $dataLeft-$dataRight.xlsx")
     workbook.write(fileOut)
     fileOut.close()
     workbook.close()
-    Desktop.getDesktop().open(File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по сотрудникам\\${LocalDate.now().year}\\$name $dataLeft-$dataRight.xlsx"))
+    Desktop.getDesktop().open(File("$desk${File.separator}Отчеты${File.separator}Отчеты по сотрудникам${File.separator}${LocalDate.now().year}${File.separator}$name $dataLeft-$dataRight.xlsx"))
 }
 

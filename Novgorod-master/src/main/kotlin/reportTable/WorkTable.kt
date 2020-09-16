@@ -1,6 +1,5 @@
 package reportTable
 
-import dataBase.DataReportExcel
 import dataBase.DataReportRequest
 import dataBase.DatabaseHandler
 import generalStyle.*
@@ -20,10 +19,13 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 
-val mapOfAmountForFinished = mutableMapOf<String, Double>() // имя и кол-во продукта
-val mapOfAmountForUnfinished = mutableMapOf<String, Double>() // имя и кол-во незаверш продукта
+val mapOfAmountForFinished = mutableMapOf<Pair<Int, String>, Double>() // имя и кол-во продукта
+val mapOfAmountForUnfinished = mutableMapOf<Pair<Int, String>, Double>() // имя и кол-во незаверш продукта
 var boxOfWorkers: VBox by singleAssign()
 var toggleGroup = ToggleGroup() // группа для кнопок, чтобы можно было выбрать лишь одну из нескольких
+val idAndNameWorkers = mutableMapOf<Int, String>()
+var idAndPlace = Pair(0, "")
+var idAndCaptain = Pair(0, "")
 // Окно отчета
 class WorkTable : View("Отчетность") {
     override val root = borderpane {
@@ -84,21 +86,21 @@ class WorkTable : View("Отчетность") {
         val requestName = dbHandler.getWorker()
         val requestFinishedProd = dbHandler.getFinishProd()
         val requestUnfinishedProd = dbHandler.getUnFinishProd()
-        val names = mutableListOf<String>()
-        val finishedProd = mutableListOf<String>()
-        val unfinishedProd = mutableListOf<String>()
+        val names = mutableMapOf<Int, String>()
+        val finishedProd = mutableMapOf<Int, String>()
+        val unfinishedProd = mutableMapOf<Int, String>()
 
         while (requestName!!.next()) { // из бд заполняю сотрудников
             val name = "${requestName.getString(2)} ${requestName.getString(3)} ${requestName.getString(4)} # ${requestName.getString(5)}"
-            names.add(name)
+            names[requestName.getInt(1)] = name
         }
         while (requestFinishedProd!!.next()) { // из бд заполняю продукт
             val prodName = requestFinishedProd.getString(2)
-            finishedProd.add(prodName)
+            finishedProd[requestFinishedProd.getInt(1)] = prodName
         }
         while (requestUnfinishedProd!!.next()) { // из бд заполняю незавершенный продукт
             val prodName = requestUnfinishedProd.getString(2)
-            unfinishedProd.add(prodName)
+            unfinishedProd[requestUnfinishedProd.getInt(1)] = prodName
         }
         center {
             anchorpane {
@@ -132,21 +134,7 @@ class WorkTable : View("Отчетность") {
                                         callListOfColumn.children.removeAt(0)
                                         if (parentToScroll.children.size == 1) parentToScroll.children.remove(0, 1)
                                         else parentToScroll.children.remove(0, 2)
-                                        addEnumerationOfWorkers(
-                                            parentToScroll,
-                                            callListOfColumn,
-                                            "Сотрудники",
-                                            names,
-                                            boxOfWorkers,
-                                            finishedProdInRub,
-                                            true,
-                                            mapOfAmountForFinished,
-                                            fullSumInput,
-                                            amountPerWorkerInput,
-                                            captainField,
-                                            hoursForBegin,
-                                            hoursForFinished
-                                        )
+                                        addEnumerationOfItem(parentToScroll, callListOfColumn, "Сотрудники", names, boxOfWorkers, finishedProdInRub, true, mapOfAmountForFinished, fullSumInput, amountPerWorkerInput, captainField, hoursForBegin, hoursForFinished)
                                     }
                                 }
                                 addEventForLabel(workers)
@@ -157,21 +145,7 @@ class WorkTable : View("Отчетность") {
                                         callListOfColumn.children.removeAt(0)
                                         if (parentToScroll.children.size == 1) parentToScroll.children.remove(0, 1)
                                         else parentToScroll.children.remove(0, 2)
-                                        addEnumerationOfWorkers(
-                                            parentToScroll,
-                                            callListOfColumn,
-                                            "Готовая продукция",
-                                            finishedProd,
-                                            boxOfFinishedProduct,
-                                            finishedProdInRub,
-                                            false,
-                                            mapOfAmountForFinished,
-                                            fullSumInput,
-                                            amountPerWorkerInput,
-                                            captainField,
-                                            hoursForBegin,
-                                            hoursForFinished
-                                        )
+                                        addEnumerationOfItem(parentToScroll, callListOfColumn, "Готовая продукция", finishedProd, boxOfFinishedProduct, finishedProdInRub, false, mapOfAmountForFinished, fullSumInput, amountPerWorkerInput, captainField, hoursForBegin, hoursForFinished)
                                     }
                                 }
                                 addEventForLabel(finishedProducts)
@@ -181,21 +155,7 @@ class WorkTable : View("Отчетность") {
                                         callListOfColumn.children.removeAt(0)
                                         if (parentToScroll.children.size == 1) parentToScroll.children.remove(0, 1)
                                         else parentToScroll.children.remove(0, 2)
-                                        addEnumerationOfWorkers(
-                                            parentToScroll,
-                                            callListOfColumn,
-                                            "Незавершенная продукция",
-                                            unfinishedProd,
-                                            boxOfUnfinishedProduct,
-                                            unfinishedProdInRub,
-                                            false,
-                                            mapOfAmountForUnfinished,
-                                            fullSumInput,
-                                            amountPerWorkerInput,
-                                            captainField,
-                                            hoursForBegin,
-                                            hoursForFinished
-                                        )
+                                        addEnumerationOfItem(parentToScroll, callListOfColumn, "Незавершенная продукция", unfinishedProd, boxOfUnfinishedProduct, unfinishedProdInRub, false, mapOfAmountForUnfinished, fullSumInput, amountPerWorkerInput, captainField, hoursForBegin, hoursForFinished)
                                     }
                                 }
                                 addEventForLabel(unfinishedProducts)
@@ -318,46 +278,23 @@ class WorkTable : View("Отчетность") {
                                 translateX = 20.0
                                 translateY = 6.5
                                 action {
-                                    val wks = readDataForWorkers()
-                                    val prodsK = readDataForProdK()
-                                    val prodsR = readDataForProdR(hoursForBegin, hoursForFinished)
-                                    val data = DataReportExcel(
-                                        wks,
-                                        prodsK.first,
-                                        prodsK.second,
-                                        prodsR.first,
-                                        prodsR.second,
-                                        captainField.text,
-                                        dateOfBeginInput.value.toString(),
-                                        "${hoursForBegin.text}:${minutesForBegin.text}",
-                                        dateOfFinishedInput.value.toString(),
-                                        "${hoursForFinished.text}:${minutesForFinished.text}",
-                                        fullSumInput.text,
-                                        amountPerWorkerInput.text,
-                                        placeField.text
-                                    )
-                                    val work = wks.joinToString(separator = "||")
-                                    val str1 = prodsK.first.joinToString(separator = "||")
-                                    val str2 = prodsK.second.joinToString(separator = "||")
-                                    val str3 = prodsR.first.joinToString(separator = "||")
-                                    val str4 = prodsR.second.joinToString(separator = "||")
-                                    val dataReportRequest = DataReportRequest(
-                                        work,
-                                        str1,
-                                        str2,
-                                        str3,
-                                        str4,
-                                        captainField.text,
-                                        dateOfBeginInput.value.toString(),
-                                        "${hoursForBegin.text}:${minutesForBegin.text}",
-                                        dateOfFinishedInput.value.toString(),
-                                        "${hoursForFinished.text}:${minutesForFinished.text}",
-                                        fullSumInput.text,
-                                        amountPerWorkerInput.text,
-                                        placeField.text
-                                    )
-                                    dbHandler.sendReport(dataReportRequest)
-                                    createReportExcel(data)
+                                    val products = readDataForProd(hoursForBegin, hoursForFinished)
+                                    val dataReportRequest = DataReportRequest()
+                                        dataReportRequest.workers = idAndNameWorkers
+                                        dataReportRequest.productsFinished = products.first
+                                        dataReportRequest.productsUnfinished = products.second
+                                        dataReportRequest.captain = idAndCaptain
+                                        dataReportRequest.dateBegin = dateOfBeginInput.value.toString()
+                                        dataReportRequest.timeBegin = "${hoursForBegin.text}:${minutesForBegin.text}"
+                                        dataReportRequest.dateFinish = dateOfFinishedInput.value.toString()
+                                        dataReportRequest.timeFinish = "${hoursForFinished.text}:${minutesForFinished.text}"
+                                        dataReportRequest.total = fullSumInput.text
+                                        dataReportRequest.salary = amountPerWorkerInput.text
+                                        dataReportRequest.place = idAndPlace
+                                    val result = dbHandler.addReport(dataReportRequest)
+                                    createReportExcel(dataReportRequest)
+                                    if (result > 0) close()
+                                    else style { borderColor = multi(box(Paint.valueOf("#f44336"))) }
                                 }
                             }
                         }
@@ -421,7 +358,7 @@ class WorkTable : View("Отчетность") {
         setStyleForScrollPane(scrollForFinishedProdInRub)
         setStyleForScrollPane(scrollForUnfinishedProdInRub)
         // Начальная установка
-        addEnumerationOfWorkers(
+        addEnumerationOfItem(
             parentToScroll,
             callListOfColumn,
             "Сотрудники",

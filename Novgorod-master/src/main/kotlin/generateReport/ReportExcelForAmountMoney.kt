@@ -8,7 +8,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.time.LocalDate
 
-fun createReportForAmountMoney(dateLeft: String, dateRight: String, nameMoney: MutableMap<String, Double>) {
+fun createReportForAmountMoney(dateLeft: String, dateRight: String, nameMoney: MutableMap<Int, Pair<String, Double>>) {
 
     val columnsFirstRow = listOf("ФИО", "Зарплата")
     val workbook = XSSFWorkbook()
@@ -39,9 +39,9 @@ fun createReportForAmountMoney(dateLeft: String, dateRight: String, nameMoney: M
     var amountMoney = 0.0
     for (person in nameMoney) {
         val row = sheet.createRow(rowIdx)
-        row.createCell(0).setCellValue(person.key)
-        row.createCell(1).setCellValue(person.value)
-        amountMoney += person.value
+        row.createCell(0).setCellValue(person.value.first)
+        row.createCell(1).setCellValue(person.value.second)
+        amountMoney += person.value.second
         rowIdx++
     }
 
@@ -51,10 +51,14 @@ fun createReportForAmountMoney(dateLeft: String, dateRight: String, nameMoney: M
     summarize.getCell(0).cellStyle = headerCellStyle
     summarize.getCell(1).cellStyle = headerCellStyle
 
-    File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по ЗП\\${LocalDate.now().year}").mkdir()
-    val fileOut = FileOutputStream("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по ЗП\\${LocalDate.now().year}\\Зарплата $dateLeft-$dateRight.xlsx")
+
+    val desk = System.getProperty("user.home") + File.separator + "Desktop"
+    File("$desk${File.separator}Отчеты").mkdir()
+    File("$desk${File.separator}Отчеты${File.separator}Отчеты по зарплатам").mkdir()
+    File("$desk${File.separator}Отчеты${File.separator}Отчеты по зарплатам${File.separator}${LocalDate.now().year}").mkdir()
+    val fileOut = FileOutputStream("$desk${File.separator}Отчеты${File.separator}Отчеты по зарплатам${File.separator}${LocalDate.now().year}${File.separator}ЗП $dateLeft-$dateRight.xlsx")
     workbook.write(fileOut)
     fileOut.close()
     workbook.close()
-    Desktop.getDesktop().open(File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по ЗП\\${LocalDate.now().year}\\Зарплата $dateLeft-$dateRight.xlsx"))
+    Desktop.getDesktop().open(File("$desk${File.separator}Отчеты${File.separator}Отчеты по зарплатам${File.separator}${LocalDate.now().year}${File.separator}ЗП $dateLeft-$dateRight.xlsx"))
 }

@@ -1,12 +1,15 @@
 import addition.NewAddition
+import dataBase.DatabaseHandler
 import reportTable.WorkTable
 import generalStyle.setSizeForButton
 import generalStyle.setSizeForLabel
 import generateReport.GenerateReport
 import javafx.geometry.Pos
 import tornadofx.*
+import java.io.File
+import java.time.LocalDate
 
-class MainMenu : View("Главное меню") {
+class MainMenu : Fragment("Главное меню") {
     override val root = borderpane {
         // окно ГЛАВНОЕ МЕНЮ
         center {
@@ -33,6 +36,7 @@ class MainMenu : View("Главное меню") {
                             }
                         }
                         val addB = button("Добавить") {
+                            if (!user) isVisible = false
                             translateY = 15.0
                             action { // кнопка которая перебрасывает нас на добавить (сотрудников и продукт)
                                 close()
@@ -42,6 +46,10 @@ class MainMenu : View("Главное меню") {
                             }
                         }
                         val generateReportB = button("Сгенерировать отчет") {
+                            if (!user) isVisible = false
+                            println(System.getProperty("user.home") + File.separator + "Desktop")
+                            val desk = System.getProperty("user.home") + File.separator + "Desktop"
+                            File("$desk${File.separator}${LocalDate.now().year}").mkdir()
                             translateY = 30.0
                             action { // кнопка перебрасывает на меню генератора отчетов в эксель
                                 close()

@@ -1,3 +1,5 @@
+import com.jcraft.jsch.JSch
+import com.jcraft.jsch.Session
 import javafx.stage.Stage
 import tornadofx.App
 

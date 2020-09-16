@@ -8,7 +8,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.time.LocalDate
 
-fun createReportExcelForProducts(dataLeft: String, dataRight: String, data: MutableMap<String, MutableList<List<String>>>, cond: Boolean) {
+fun createReportExcelForProducts(dataLeft: String, dataRight: String, data: MutableMap<Int, MutableList<List<String>>>, cond: Boolean) {
 
     val columnsFirstRow = listOf("Наименование", "КГ", "Стоимость", "ДАТА И ВРЕМЯ")
 
@@ -51,12 +51,12 @@ fun createReportExcelForProducts(dataLeft: String, dataRight: String, data: Muta
 
         for (list in products.value) {
             val row = sheet.createRow(rowIdx)
-            row.createCell(0).setCellValue(products.key)
-            row.createCell(1).setCellValue(list[1])
-            row.createCell(2).setCellValue(list[2])
+            row.createCell(0).setCellValue(list[1])
+            row.createCell(1).setCellValue(list[2])
+            row.createCell(2).setCellValue(list[3])
             row.createCell(3).setCellValue(list[0])
-            amountK += list[1].toDouble()
-            amountR += list[2].toDouble()
+            amountK += list[2].toDouble()
+            amountR += list[3].toDouble()
             rowIdx++
         }
         val summarizeFirst = sheet.createRow(sheet.lastRowNum + 1)
@@ -72,16 +72,28 @@ fun createReportExcelForProducts(dataLeft: String, dataRight: String, data: Muta
 
         rowIdx = sheet.lastRowNum + 2
     }
-    if (cond) File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по продукции\\Готовая продукция").mkdir()
-    else File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по продукции\\Незавершенная продукция").mkdir()
+    val desk = System.getProperty("user.home") + File.separator + "Desktop"
 
-    val fileOut = if (cond) FileOutputStream("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по продукции\\Готовая продукция\\$dataLeft-$dataRight.xlsx")
-                  else FileOutputStream("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по продукции\\Незавершенная продукция\\$dataLeft-$dataRight.xlsx")
+    if (cond) {
+        File("$desk${File.separator}Отчеты").mkdir()
+        File("$desk${File.separator}Отчеты${File.separator}Отчеты по продукции").mkdir()
+        File("$desk${File.separator}Отчеты${File.separator}Отчеты по продукции${File.separator}Готовая продукция").mkdir()
+        File("$desk${File.separator}Отчеты${File.separator}Отчеты по продукции${File.separator}Готовая продукция${File.separator}${LocalDate.now().year}").mkdir()
+    }
+    else {
+        File("$desk${File.separator}Отчеты").mkdir()
+        File("$desk${File.separator}Отчеты${File.separator}Отчеты по продукции").mkdir()
+        File("$desk${File.separator}Отчеты${File.separator}Отчеты по продукции${File.separator}Незавершенная продукция").mkdir()
+        File("$desk${File.separator}Отчеты${File.separator}Отчеты по продукции${File.separator}Незавершенная продукция${File.separator}${LocalDate.now().year}").mkdir()
+    }
+
+    val fileOut = if (cond) FileOutputStream("$desk${File.separator}Отчеты${File.separator}Отчеты по продукции${File.separator}Готовая продукция${File.separator}${LocalDate.now().year}${File.separator}$dataLeft-$dataRight.xlsx")
+                  else FileOutputStream("$desk${File.separator}Отчеты${File.separator}Отчеты по продукции${File.separator}Незавершенная продукция${File.separator}${LocalDate.now().year}${File.separator}$dataLeft-$dataRight.xlsx")
     workbook.write(fileOut)
     fileOut.close()
     workbook.close()
-    val file = if (cond) File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по продукции\\Готовая продукция\\$dataLeft-$dataRight.xlsx")
-            else File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по продукции\\Незавершенная продукция\\$dataLeft-$dataRight.xlsx")
+    val file = if (cond) File("$desk${File.separator}Отчеты${File.separator}Отчеты по продукции${File.separator}Готовая продукция${File.separator}${LocalDate.now().year}${File.separator}$dataLeft-$dataRight.xlsx")
+            else File("$desk${File.separator}Отчеты${File.separator}Отчеты по продукции${File.separator}Незавершенная продукция${File.separator}${LocalDate.now().year}${File.separator}$dataLeft-$dataRight.xlsx")
     Desktop.getDesktop().open(file)
 
 }

@@ -1,12 +1,10 @@
 package reportTable
 
-import dataBase.DataReportExcel
+import dataBase.DataReportRequest
 import org.apache.poi.ss.usermodel.HorizontalAlignment
 import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.CellRangeAddress
-import org.apache.poi.xssf.usermodel.XSSFColor
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.awt.Color
 import java.awt.Desktop
 import java.io.File
 import java.io.FileOutputStream
@@ -16,9 +14,8 @@ private var columnsFirstTable = listOf("Общие сведения", "Бриг�
 private var nameAndTotal = listOf("Наименование", "Значения", "Количество", "Стоимость") // второго ряда
 private var generalInformation = listOf("Бригадир", "Дата и время начала", "Дата и время окончания", "Общая сумма", "Сумма на одного сотрудников", "Участок") // общие сведения
 
-fun createReportExcel(data: DataReportExcel) {
+fun createReportExcel(data: DataReportRequest) {
     val workbook = XSSFWorkbook() // создаю книгу
-
     val sheet = workbook.createSheet("${data.captain} ${data.dateFinish}") // создаю лист
 
     val headerFont = workbook.createFont()
@@ -71,75 +68,77 @@ fun createReportExcel(data: DataReportExcel) {
         val row = sheet.createRow(rowIdx)
         row.createCell(0).setCellValue(info)
         when (rowIdx) {
-            2 -> row.createCell(1).setCellValue(data.captain)
+            2 -> row.createCell(1).setCellValue(data.captain.second)
             3 -> row.createCell(1).setCellValue("${data.dateBegin} ${data.timeBegin}")
             4 -> row.createCell(1).setCellValue("${data.dateFinish} ${data.timeFinish}")
             5 -> row.createCell(1).setCellValue(data.total)
-            6 -> row.createCell(1).setCellValue(data.onePart)
-            7 -> row.createCell(1).setCellValue(data.place)
+            6 -> row.createCell(1).setCellValue(data.salary)
+            7 -> row.createCell(1).setCellValue(data.place.second)
         }
         rowIdx++
     }
 
     rowIdx = 2
-    for (workers in data.listOfWorkers) {
+    for (workers in data.workers) {
         if (sheet.lastRowNum + 1 == rowIdx) {
             val row = sheet.createRow(rowIdx)
-            row.createCell(2).setCellValue(workers)
+            row.createCell(2).setCellValue(workers.value)
             row.getCell(2).cellStyle = hcStyleS
         } else {
             val row = sheet.getRow(rowIdx)
-            row.createCell(2).setCellValue(workers)
+            row.createCell(2).setCellValue(workers.value)
             row.getCell(2).cellStyle = hcStyleS
         }
         rowIdx++
     }
 
     rowIdx = 2
-    for (finish in data.listFinishedProdK.indices) {
+    for (finish in data.productsFinished) {
         if (sheet.lastRowNum + 1 == rowIdx) {
             val row = sheet.createRow(rowIdx)
-            row.createCell(3).setCellValue(data.listFinishedProdK[finish].first)
-            row.createCell(4).setCellValue(data.listFinishedProdK[finish].second)
-            row.createCell(5).setCellValue(data.listFinishedProdR[finish].second)
+            row.createCell(3).setCellValue(finish.value[0])
+            row.createCell(4).setCellValue(finish.value[1])
+            row.createCell(5).setCellValue(finish.value[2])
             row.getCell(4).cellStyle = hcStyleS
             row.getCell(5).cellStyle = hcStyleS
             rowIdx++
         } else {
             val row = sheet.getRow(rowIdx)
-            row.createCell(3).setCellValue(data.listFinishedProdK[finish].first)
-            row.createCell(4).setCellValue(data.listFinishedProdK[finish].second)
-            row.createCell(5).setCellValue(data.listFinishedProdR[finish].second)
+            row.createCell(3).setCellValue(finish.value[0])
+            row.createCell(4).setCellValue(finish.value[1])
+            row.createCell(5).setCellValue(finish.value[2])
             row.getCell(4).cellStyle = hcStyleS
             row.getCell(5).cellStyle = hcStyleS
             rowIdx++
         }
     }
     rowIdx = 2
-    for (unFinish in data.listUnfinishedProdK.indices) {
+    for (unFinish in data.productsUnfinished) {
         if (sheet.lastRowNum + 1 == rowIdx) {
             val row = sheet.createRow(rowIdx)
-            row.createCell(6).setCellValue(data.listUnfinishedProdK[unFinish].first)
-            row.createCell(7).setCellValue(data.listUnfinishedProdK[unFinish].second)
-            row.createCell(8).setCellValue(data.listUnfinishedProdR[unFinish].second)
+            row.createCell(6).setCellValue(unFinish.value[0])
+            row.createCell(7).setCellValue(unFinish.value[1])
+            row.createCell(8).setCellValue(unFinish.value[2])
             row.getCell(7).cellStyle = hcStyleS
             row.getCell(8).cellStyle = hcStyleS
             rowIdx++
         } else {
             val row = sheet.getRow(rowIdx)
-            row.createCell(6).setCellValue(data.listUnfinishedProdK[unFinish].first)
-            row.createCell(7).setCellValue(data.listUnfinishedProdK[unFinish].second)
-            row.createCell(8).setCellValue(data.listUnfinishedProdR[unFinish].second)
+            row.createCell(6).setCellValue(unFinish.value[0])
+            row.createCell(7).setCellValue(unFinish.value[1])
+            row.createCell(8).setCellValue(unFinish.value[2])
             row.getCell(7).cellStyle = hcStyleS
             row.getCell(8).cellStyle = hcStyleS
             rowIdx++
         }
     }
-    File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты за день").mkdir()
-    val fileOut = FileOutputStream("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты за день\\${data.captain} ${data.dateFinish}.xlsx") // создается файл xlsx с именем
+    val desk = System.getProperty("user.home") + File.separator + "Desktop"
+    File("$desk${File.separator}Отчеты").mkdir()
+    File("$desk${File.separator}Отчеты${File.separator}Отчеты по за день").mkdir()
+    File("$desk${File.separator}Отчеты${File.separator}Отчеты по за день${File.separator}${LocalDate.now().year}").mkdir()
+    val fileOut = FileOutputStream("$desk${File.separator}Отчеты${File.separator}Отчеты по за день${File.separator}${LocalDate.now().year}${File.separator}${data.captain.second} ${data.dateFinish}.xlsx") // создается файл xlsx с именем
     workbook.write(fileOut)
     fileOut.close()
     workbook.close() // закрываются потоки
-    Desktop.getDesktop().open(File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты за день\\${data.captain} ${data.dateFinish}.xlsx"))
-
+    Desktop.getDesktop().open(File("$desk${File.separator}Отчеты${File.separator}Отчеты по за день${File.separator}${LocalDate.now().year}${File.separator}${data.captain.second} ${data.dateFinish}.xlsx"))
 }

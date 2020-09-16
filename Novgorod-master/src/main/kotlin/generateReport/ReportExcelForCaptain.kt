@@ -8,9 +8,9 @@ import java.io.File
 import java.io.FileOutputStream
 import java.time.LocalDate
 
-fun createReportForCaptain(dateLeft: String, dateRight: String, captainsDatePlace: MutableList<List<String>>) {
+fun createReportForCaptain(dateLeft: String, dateRight: String, captainsDatePlace: MutableList<List<Pair<Int,String>>>) {
     println(captainsDatePlace)
-    val columnsFirstRow = listOf("ДАТА", "ФИО", "УЧАСТОК")
+    val columnsFirstRow = listOf("ФИО", "ДАТА", "УЧАСТОК")
 
     val workbook = XSSFWorkbook()
     val sheet = workbook.createSheet("Бригадиры $dateLeft-$dateRight")
@@ -42,15 +42,19 @@ fun createReportForCaptain(dateLeft: String, dateRight: String, captainsDatePlac
     var rowIdx = 1
     for (value in captainsDatePlace) {
         val row = sheet.createRow(rowIdx)
-        row.createCell(0).setCellValue(value[0])
-        row.createCell(1).setCellValue(value[1])
-        row.createCell(2).setCellValue(value[2])
+        row.createCell(0).setCellValue(value[0].second)
+        row.createCell(1).setCellValue(value[1].second)
+        row.createCell(2).setCellValue(value[2].second)
         rowIdx++
     }
-    File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по бригадирам\\${LocalDate.now().year}").mkdir()
-    val fileOut = FileOutputStream("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по бригадирам\\${LocalDate.now().year}\\Бригадиры $dateLeft-$dateRight.xlsx")
+    val desk = System.getProperty("user.home") + File.separator + "Desktop"
+    File("$desk${File.separator}Отчеты").mkdir()
+    File("$desk${File.separator}Отчеты${File.separator}Отчеты по бригадирам").mkdir()
+    File("$desk${File.separator}Отчеты${File.separator}Отчеты по бригадирам${File.separator}${LocalDate.now().year}").mkdir()
+    val fileOut = FileOutputStream("$desk${File.separator}Отчеты${File.separator}Отчеты по бригадирам${File.separator}${LocalDate.now().year}${File.separator}Бригадиры $dateLeft-$dateRight.xlsx")
     workbook.write(fileOut)
     fileOut.close()
     workbook.close()
-    Desktop.getDesktop().open(File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Отчеты по бригадирам\\${LocalDate.now().year}\\Бригадиры $dateLeft-$dateRight.xlsx"))
+    Desktop.getDesktop().open(File("$desk${File.separator}Отчеты${File.separator}Отчеты по бригадирам${File.separator}${LocalDate.now().year}${File.separator}Бригадиры $dateLeft-$dateRight.xlsx"))
+
 }

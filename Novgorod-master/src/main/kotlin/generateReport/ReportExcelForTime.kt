@@ -61,16 +61,23 @@ fun createReportExcelForTime(dateLeft: String, dateRight: String, listDays: List
     }
 
     for (i in 0 until indexDaysForRow) {
-        if (cond && i == indexDaysForRow - 1) {
-            secondRow.createCell(i + 3).setCellValue("X")
-            secondRow.getCell(i + 3).cellStyle = headerCellStyle
+        if (cond) {
+            if (i == indexDaysForRow - 1) {
+                secondRow.createCell(i + 3).setCellValue("X")
+                secondRow.getCell(i + 3).cellStyle = headerCellStyle
+            } else {
+                secondRow.createCell(i + 3).setCellValue(listDays[i].toString())
+                secondRow.getCell(i + 3).cellStyle = headerCellStyle
+            }
+            thirdRow.createCell(i + 3).setCellValue(listDays[i + indexDaysForRow - 1].toString())
+            thirdRow.getCell(i + 3).cellStyle = headerCellStyle
         }
         else {
             secondRow.createCell(i + 3).setCellValue(listDays[i].toString())
             secondRow.getCell(i + 3).cellStyle = headerCellStyle
+            thirdRow.createCell(i + 3).setCellValue(listDays[i + indexDaysForRow].toString())
+            thirdRow.getCell(i + 3).cellStyle = headerCellStyle
         }
-        thirdRow.createCell(i + 3).setCellValue(listDays[i + indexDaysForRow - 1].toString())
-        thirdRow.getCell(i + 3).cellStyle = headerCellStyle
     }
     firstRow.createCell(indexDaysForRow + 3).setCellValue(columnsRow[3])
     firstRow.getCell(indexDaysForRow + 3).cellStyle = headerCellStyle
@@ -124,11 +131,13 @@ fun createReportExcelForTime(dateLeft: String, dateRight: String, listDays: List
         idx += 2
         count++
     }
-
-    File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Табель рабочего времени\\${LocalDate.now().year}").mkdir()
-    val fileOut = FileOutputStream("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Табель рабочего времени\\${LocalDate.now().year}\\${month.second} Табель времени.xlsx")
+    val desk = System.getProperty("user.home") + File.separator + "Desktop"
+    File("$desk${File.separator}Отчеты").mkdir()
+    File("$desk${File.separator}Отчеты${File.separator}Табель рабочего времени").mkdir()
+    File("$desk${File.separator}Отчеты${File.separator}Табель рабочего времени${File.separator}${LocalDate.now().year}").mkdir()
+    val fileOut = FileOutputStream("$desk${File.separator}Отчеты${File.separator}Табель рабочего времени${File.separator}${LocalDate.now().year}${File.separator}Табель рабочего времени ${month.second}.xlsx")
     workbook.write(fileOut)
     fileOut.close()
     workbook.close()
-    Desktop.getDesktop().open(File("C:\\Users\\GetRhymes\\Desktop\\Novgorod\\Novgorod-master\\Reports\\Табель рабочего времени\\${LocalDate.now().year}\\${month.second} Табель времени.xlsx"))
+    Desktop.getDesktop().open(File("$desk${File.separator}Отчеты${File.separator}Табель рабочего времени${File.separator}${LocalDate.now().year}${File.separator}Табель рабочего времени ${month.second}.xlsx"))
 }

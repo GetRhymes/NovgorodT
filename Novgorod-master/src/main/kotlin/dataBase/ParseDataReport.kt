@@ -1,215 +1,182 @@
 package dataBase
 
 import generateReport.DataWorkerPeriod
-import java.time.LocalDate
-import java.time.Month
+import kotlin.collections.List
+import kotlin.collections.MutableList
+import kotlin.collections.MutableMap
+import kotlin.collections.contains
+import kotlin.collections.isNullOrEmpty
+import kotlin.collections.listOf
+import kotlin.collections.mutableListOf
+import kotlin.collections.mutableMapOf
+import kotlin.collections.set
 
-fun checkDataForReport(captain: String, place: String, captainNew: String, placeNew: String ): Boolean {
-    if (captain == captainNew && place == placeNew) return true
+fun checkDataForReport(captainId: Int, placeId: Int, reportId: Int): Boolean {
+    val dbHandler = DatabaseHandler()
+    val needIdCaptain = dbHandler.getCaptainForNeedReport(reportId)
+    val needIdPlace = dbHandler.getPlaceForNeedReport(reportId)
+    if (captainId == needIdCaptain && placeId == needIdPlace) return true
     return false
 }
-fun getDataReportForNeedDate(date: String, captain: String, place: String): DataReportRequest {
+
+fun checkTime(timeBegin: String, timeFinished: String): Boolean {
+    val hoursBegin = timeBegin.split(":")[0].toInt()
+    val hoursFinished = timeFinished.split(":")[0].toInt()
+    if (hoursFinished in 19..21 && hoursBegin >= 7) return true
+    if ((hoursFinished <= 7 || hoursFinished >= 19)  && (hoursBegin >= 18 || hoursBegin <= 7)) return false
+    return true
+}
+
+fun getDataReportForNeedDate(date: String, captain: Pair<Int, String>, place: Pair<Int, String>): DataReportRequest {
     val dbHandler = DatabaseHandler()
-    val fullDate = dbHandler.getReport()
-    val needData = DataReportRequest(
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        ""
-    )
+    val fullDate = dbHandler.getReportForNeedDate(date)
+    val needData = DataReportRequest()
     while (fullDate!!.next()) {
-        if (fullDate.getString(8) == date && checkDataForReport(captain, place, fullDate.getString(7),  fullDate.getString(14))) {
-            needData.workers = fullDate.getString(2)
-            needData.productFinishedK = fullDate.getString(3)
-            needData.productUnfinishedK = fullDate.getString(4)
-            needData.productFinishedR = fullDate.getString(5)
-            needData.productUnfinishedR = fullDate.getString(6)
-            needData.captain = fullDate.getString(7)
-            needData.dateBegin = fullDate.getString(8)
-            needData.timeBegin = fullDate.getString(9)
-            needData.dateFinish = fullDate.getString(10)
-            needData.timeFinish = fullDate.getString(11)
-            needData.total = fullDate.getString(12)
-            needData.perOne = fullDate.getString(13)
-            needData.place = fullDate.getString(14)
-            break
+        val idReport = fullDate.getInt(1)
+        if (checkDataForReport(captain.first, place.first, idReport)) {
+            val time = Pair(fullDate.getString(3), fullDate.getString(5))
+            needData.workers = dbHandler.getNeedWorkers(idReport)
+            needData.productsFinished = dbHandler.getNeedFinishedProducts(idReport, checkTime(time.first, time.second))
+            needData.productsUnfinished = dbHandler.getNeedUnfinishedProducts(idReport, checkTime(time.first, time.second))
+            needData.captain = captain
+            needData.dateBegin = fullDate.getString(2)
+            needData.timeBegin = fullDate.getString(3)
+            needData.dateFinish = fullDate.getString(4)
+            needData.timeFinish = fullDate.getString(5)
+            needData.total = fullDate.getString(6)
+            needData.salary = fullDate.getString(7)
+            needData.place = place
         }
     }
     return needData
 } // получаем данные из бд (отчет)
-
-fun changeDataForReportExcel(date: String, captain: String, place: String): DataReportExcel {
-    val dataReportRequest = getDataReportForNeedDate(date, captain, place)
-    return DataReportExcel(
-        dataReportRequest.createListForWorkers(),
-        dataReportRequest.createListProduct(dataReportRequest.productFinishedK),
-        dataReportRequest.createListProduct(dataReportRequest.productUnfinishedK),
-        dataReportRequest.createListProduct(dataReportRequest.productFinishedR),
-        dataReportRequest.createListProduct(dataReportRequest.productUnfinishedR),
-        dataReportRequest.captain,
-        dataReportRequest.dateBegin,
-        dataReportRequest.timeBegin,
-        dataReportRequest.dateFinish,
-        dataReportRequest.timeFinish,
-        dataReportRequest.total,
-        dataReportRequest.perOne,
-        dataReportRequest.place
-    )
-} // преобразуем отчет из бд в класс для отчета в эксель
 
 fun dateEntryCheck(currentDate: String, dateLeft: String, dateRight: String): Boolean {
     val currentDateList = currentDate.split("-")
     val leftDateList = dateLeft.split("-")
     val rightDateList = dateRight.split("-")
 
-    if (currentDateList[0].toInt() == leftDateList[0].toInt() && currentDateList[0].toInt() == rightDateList[0].toInt()) {
-        if (currentDateList[1].toInt() == leftDateList[1].toInt() && currentDateList[1].toInt() == rightDateList[1].toInt())
-            return currentDateList[2].toInt() in leftDateList[2].toInt()..rightDateList[2].toInt()
-        if (currentDateList[1].toInt() in leftDateList[1].toInt()..rightDateList[1].toInt()) return true
-    } else if (currentDateList[0].toInt() in leftDateList[0].toInt()..rightDateList[0].toInt()) return true
+    val currentDateYear = currentDateList[0].toInt()
+    val currentDateMonth = currentDateList[1].toInt()
+    val currentDateDay = currentDateList[2].toInt()
+
+    val leftDateYear = leftDateList[0].toInt()
+    val leftDateMonth = leftDateList[1].toInt()
+    val leftDateDay = leftDateList[2].toInt()
+
+    val rightDateYear = rightDateList[0].toInt()
+    val rightDateMonth = rightDateList[0].toInt()
+    val rightDateDay = rightDateList[0].toInt()
+
+    if (currentDateYear == leftDateYear && currentDateYear == rightDateYear) {
+        if (currentDateMonth == leftDateMonth && currentDateMonth == rightDateMonth)
+            return currentDateDay in leftDateDay..rightDateDay
+        if (currentDateMonth in leftDateMonth..rightDateMonth) return true
+    } else if (currentDateYear in leftDateYear..rightDateYear) return true
     return false
 } // проверка входит ли полученная дата в заданный промежуток времени
 
-fun contentWorker(name: String, workers: String): Boolean {
-    if (workers.contains(name)) return true
-    return false
-} // содержит ли строка нужного сотрудника
-
-fun createListProd(stringProdKilo: String, stringProdRub: String, size: Double): Pair<MutableList<List<String>>, Double> {
-    val listProdKilo = stringProdKilo.split("||")
-    val listProdRub = stringProdRub.split("||")
-    val resultList = mutableListOf<List<String>>()
+fun createListProd(listProd: MutableMap<Int, List<String>>, size: Double): Pair<MutableList<List<String>>, Double> {
     var totalPrice = 0.0
-    if (listProdKilo.isNotEmpty()) {
-        for (i in listProdKilo.indices) {
-            val nameAndTotal = listProdKilo[i].split(", ")
-            println(nameAndTotal)
-            val nameAndPrice = listProdRub[i].split(", ")
-            if (nameAndTotal[0] != "") {
-                val name = nameAndTotal[0].replace("(", "")
-                val total = nameAndTotal[1].replace(")", "")
-                val price = nameAndPrice[1].replace(")", "")
-                val currentPrice = price.toDouble() / size
-                totalPrice += currentPrice
-                resultList.add(listOf(name, (total.toDouble() / size).toString(), currentPrice.toString()))
-            }
-        }
+    val listProducts = mutableListOf<List<String>>()
+    for (prod in listProd) {
+        totalPrice += prod.value[2].toDouble() / size
+        listProducts.add(prod.value)
     }
-    return Pair(resultList, totalPrice)
+    return Pair(listProducts, totalPrice)
 } // создается лист продукции для отчета
 
-fun getSizeWorkers (workers: String): Double {
-    return workers.split("||").size.toDouble()
-} // получает кол-во сотрудников
-
-fun getDataReportForNeedWorker(dateLeft: String, dateRight: String, name: String): MutableList<DataWorkerPeriod> {
+fun getDataReportForNeedWorker(dateLeft: String, dateRight: String, name: Pair<Int, String>): MutableList<DataWorkerPeriod> {
     val dbHandler = DatabaseHandler()
     val fullData = dbHandler.getReport()
     val listDate = mutableListOf<DataWorkerPeriod>()
     while (fullData!!.next()) {
-        if (dateEntryCheck(fullData.getString(8), dateLeft, dateRight))
-            if (contentWorker(name, fullData.getString(2))) {
-                val size = getSizeWorkers(fullData.getString(2))
-                val finishedPair = createListProd(fullData.getString(3), fullData.getString(5), size)
-                val unfinishedPair = createListProd(fullData.getString(4), fullData.getString(6), size)
+        if (dateEntryCheck(fullData.getString(2), dateLeft, dateRight)) {
+            val workers = dbHandler.getNeedWorkers(fullData.getInt(1))
+            if (workers.containsKey(name.first)) {
+                val time = checkTime(fullData.getString(3), fullData.getString(5))
+                val size = workers.size.toDouble()
+                val listFinishedProducts = createListProd(dbHandler.getNeedFinishedProducts(fullData.getInt(1), time), size)
+                val listUnfinishedProducts = createListProd(dbHandler.getNeedUnfinishedProducts(fullData.getInt(1), time), size)
                 val dataWorkerPeriod = DataWorkerPeriod(
-                    fullData.getString(8),
-                    fullData.getString(9),
-                    fullData.getString(11),
-                    finishedPair.first,
-                    unfinishedPair.first,
-                    finishedPair.second.toString(),
-                    unfinishedPair.second.toString()
+                    fullData.getString(2),
+                    fullData.getString(3),
+                    fullData.getString(5),
+                    listFinishedProducts.first,
+                        listUnfinishedProducts.first,
+                        listFinishedProducts.second,
+                        listUnfinishedProducts.second
                 )
                 listDate.add(dataWorkerPeriod)
             }
+        }
+
     }
     return listDate
 } // возвращаем список нужных данных для генерации отчета по сотруднику
 
-fun getDataReportForAmountMoney(dateLeft: String, dateRight: String): MutableMap<String, Double> {
+fun getDataReportForAmountMoney(dateLeft: String, dateRight: String): MutableMap<Int, Pair<String, Double>> {
     val dbHandler = DatabaseHandler()
     val fullData = dbHandler.getReport()
-    val dataInPeriod = mutableMapOf<String, Double>()
+    val dataInPeriod = mutableMapOf<Int, Pair<String, Double>>()
     while (fullData!!.next()) {
-        if (dateEntryCheck(fullData.getString(8), dateLeft, dateRight)) {
-            val workers = fullData.getString(2).split("||")
+        if (dateEntryCheck(fullData.getString(2), dateLeft, dateRight)) {
+            val workers = dbHandler.getNeedWorkers(fullData.getInt(1))
             for (worker in workers) {
-                if(dataInPeriod.containsKey(worker)) dataInPeriod[worker] = dataInPeriod[worker]!! + fullData.getString(13).toDouble()
-                else dataInPeriod[worker] = fullData.getString(13).toDouble()
+                if(dataInPeriod.containsKey(worker.key)) dataInPeriod[worker.key] = Pair(worker.value , dataInPeriod[worker.key]!!.second + fullData.getString(7).toDouble())
+                else dataInPeriod[worker.key] = Pair(worker.value, fullData.getString(7).toDouble())
             }
         }
     }
     return dataInPeriod
 } // возвращаем данные за период по зарплате каждого сотрудника
 
-fun parseDataProduct(productK: String, productR: String): MutableMap<String, Pair<String, String>> {
-    val pairProdK = productK.split("||")
-    val pairProdR = productR.split("||")
-    val nameTotalPrice = mutableMapOf<String, Pair<String, String>>()
-    for (pair in pairProdK.indices) {
-        val nameAndTotal = pairProdK[pair].split(", ")
-        val nameAndPrice = pairProdR[pair].split(", ")
-        nameTotalPrice[nameAndTotal[0].replace("(", "")] = Pair(
-                nameAndTotal[1].replace(")", ""),
-                nameAndPrice[1].replace(")", "")
-        )
-    }
-    return nameTotalPrice
-}
-fun createMapForReportProd(mapOfResult: MutableMap<String, MutableList<List<String>>>, prodK: String, prodR: String, date: String) {
-    //val dataInPeriod = mutableMapOf<String, MutableList<List<String>>>()
-    val products = parseDataProduct(prodK, prodR)
+fun createMapForReportProd(mapOfResult: MutableMap<Int, MutableList<List<String>>>, products: Map<Int, List<String>>, date: String) {
     for (product in products) {
-        if (mapOfResult.containsKey(product.key)) mapOfResult[product.key]!!.add(listOf(date, product.value.first, product.value.second))
-        else mapOfResult[product.key] = mutableListOf(listOf(date, product.value.first, product.value.second))
+        if (mapOfResult.containsKey(product.key)) mapOfResult[product.key]!!.add(listOf(date, product.value[0], product.value[1], product.value[2]))
+        else mapOfResult[product.key] = mutableListOf(listOf(date, product.value[0], product.value[1], product.value[2]))
     }
 }
-fun getDataForReportProduct(dateLeft: String, dateRight: String, cond: Boolean): MutableMap<String, MutableList<List<String>>> {
+
+fun getDataForReportProduct(dateLeft: String, dateRight: String, cond: Boolean): MutableMap<Int, MutableList<List<String>>> {
     val dbHandler = DatabaseHandler()
     val fullData = dbHandler.getReport()
-    val result = mutableMapOf<String, MutableList<List<String>>>()
+    val result = mutableMapOf<Int, MutableList<List<String>>>()
     while (fullData!!.next()) {
-        if (dateEntryCheck(fullData.getString(8), dateLeft, dateRight)) {
-            val date = "${fullData.getString(8)} ${fullData.getString(9)}-${fullData.getString(11)}"
-            if (cond) createMapForReportProd(result, fullData.getString(3), fullData.getString(5), date)
-            else createMapForReportProd(result, fullData.getString(4), fullData.getString(6), date)
+        if (dateEntryCheck(fullData.getString(2), dateLeft, dateRight)) {
+            val date = "${fullData.getString(2)} ${fullData.getString(3)}-${fullData.getString(5)}"
+            val time = checkTime(fullData.getString(3), fullData.getString(5))
+            if (cond) createMapForReportProd(result, dbHandler.getNeedFinishedProducts(fullData.getInt(1), time) , date)
+            else createMapForReportProd(result, dbHandler.getNeedUnfinishedProducts(fullData.getInt(1), time), date)
         }
     }
     return result
 }
 
-fun getDataForReportCaptain(dateLeft: String, dateRight: String, place: String): MutableList<List<String>> {
-    val dbHandler = DatabaseHandler()
-    val captainDatePlace = mutableListOf<List<String>>()
-    val fullData = dbHandler.getReport()
+fun getDataForReportCaptain(dateLeft: String, dateRight: String, place: Pair<Int, String>): MutableList<List<Pair<Int, String>>> {
+    val dbHandlerForReport = DatabaseHandler()
+    val captainDatePlace = mutableListOf<List<Pair<Int, String>>>()
+    val fullData = dbHandlerForReport.getReport()
     while (fullData!!.next()) {
-        if (dateEntryCheck(fullData.getString(8), dateLeft, dateRight)) {
-            if (place == "") {
-                val captain = fullData.getString(7)
-                val date = fullData.getString(8)
-                val realPlace = fullData.getString(14)
-                captainDatePlace.add(listOf(captain, date, realPlace))
+        if (dateEntryCheck(fullData.getString(2), dateLeft, dateRight)) {
+            val dbHandler = DatabaseHandler()
+            if (place.first == 0) {
+                val captain = dbHandler.getNeedCaptain(fullData.getInt(1))
+                val date = fullData.getString(2)
+                val realPlace = dbHandler.getNeedPlace(fullData.getInt(1))
+                captainDatePlace.add(listOf(captain, Pair(0, date), realPlace))
             } else {
-                if (fullData.getString(14) == place) {
-                    val captain = fullData.getString(7)
-                    val date = fullData.getString(8)
-                    captainDatePlace.add(listOf(captain, date, place))
+                if (dbHandler.getNeedPlace(fullData.getInt(1)).first == place.first) {
+                    val captain = dbHandler.getNeedCaptain(fullData.getInt(1))
+                    val date = fullData.getString(2)
+                    captainDatePlace.add(listOf(captain, Pair(0, date), place))
                 }
             }
         }
     }
     return captainDatePlace
 }
+
 fun getMonth(dateRight: String): Pair<Int, String> {
     val dayMonthYearRight = dateRight.split("-")
     return when (dayMonthYearRight[1].toInt()) {
@@ -235,27 +202,28 @@ fun getListDays(dateLeft: String, dateRight: String): List<Int> {
     for (i in dayMonthYearLeft[2].toInt()..dayMonthYearRight[2].toInt()) { listDays.add(i) }
     return listDays
 }
+
 fun getTime(timeBegin: String, timeFinished: String): Int {
     val hoursBegin = timeBegin.split(":")
     val hoursFinished = timeFinished.split(":")
     return if (hoursFinished[0].toInt() - hoursBegin[0].toInt() > 0) hoursFinished[0].toInt() - hoursBegin[0].toInt()
            else hoursFinished[0].toInt() - hoursBegin[0].toInt() * -1
 }
-fun getDataForReportTime(dateLeft: String, dateRight: String, listNames: MutableList<String>, listDays: List<Int>): MutableMap<String, MutableMap<Int, Int>> {
+
+fun getDataForReportTime(dateLeft: String, dateRight: String, listNames: MutableList<Pair<Int, String>>, listDays: List<Int>): MutableMap<String, MutableMap<Int, Int>> {
     val mapOfTime = mutableMapOf<String, MutableMap<Int, Int>>()
     val dbHandler = DatabaseHandler()
     val requestReport = dbHandler.getReport()
-    println(listDays)
     while (requestReport!!.next()) {
-        if (dateEntryCheck(requestReport.getString(8), dateLeft, dateRight)) {
-            val currentDay = requestReport.getString(8).split("-")[2].toInt()
-            val workers = requestReport.getString(2).split("||")
-            val time = getTime(requestReport.getString(9), requestReport.getString(11))
+        if (dateEntryCheck(requestReport.getString(2), dateLeft, dateRight)) {
+            val currentDay = requestReport.getString(2).split("-")[2].toInt()
+            val workers = dbHandler.getNeedWorkers(requestReport.getInt(1))
+            val time = getTime(requestReport.getString(3), requestReport.getString(5))
             for (name in listNames) {
-                if (workers.contains(name)) {
-                    if (mapOfTime[name].isNullOrEmpty()) mapOfTime[name] = mutableMapOf()
+                if (workers.contains(name.first)) {
+                    if (mapOfTime[name.second].isNullOrEmpty()) mapOfTime[name.second] = mutableMapOf()
                     if (listDays.contains(currentDay)) {
-                        mapOfTime[name]!![currentDay] = time
+                        mapOfTime[name.second]!![currentDay] = time
                     }
                 }
             }

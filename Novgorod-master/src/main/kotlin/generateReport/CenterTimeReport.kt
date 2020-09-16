@@ -22,13 +22,13 @@ class CenterTimeReport : View("Отчет по времени") {
         var nameWorkerFd: TextField by singleAssign()
         var selectAll: ToggleButton by singleAssign()
         val dbHandler = DatabaseHandler()
-        val listOfWorkers = mutableListOf<String>()
+        val listOfWorkers = mutableListOf<Pair<Int, String>>()
         val requestWorker = dbHandler.getWorker()
         while (requestWorker!!.next()) {
             val name = "${requestWorker.getString(2)} ${requestWorker.getString(3)} ${requestWorker.getString(4)} # ${requestWorker.getString(5)}"
-            listOfWorkers.add(name)
+            listOfWorkers.add(requestWorker.getInt(1) to name)
         } // запрашиваю из бд список сотрудников
-        val finalListWorkers = mutableListOf<String>()
+        val finalListWorkers = mutableListOf<Pair<Int, String>>()
         center {
             anchorpane {
                 vbox {
@@ -77,8 +77,8 @@ class CenterTimeReport : View("Отчет по времени") {
                                 if (boxForSearchWorker.children.size != 0) boxForSearchWorker.children.remove(0, 1)
                                 val vBox = VBox()
                                 for (worker in listOfWorkers) {
-                                    if (worker.toLowerCase().contains(text.toString().toLowerCase())) {
-                                        val radioButton = RadioButton(worker)
+                                    if (worker.second.toLowerCase().contains(text.toString().toLowerCase())) {
+                                        val radioButton = RadioButton(worker.second)
                                         if (finalListWorkers.contains(worker)) radioButton.isSelected = true
                                         radioButton.addEventFilter(MouseEvent.MOUSE_CLICKED) {
                                             if (radioButton.isSelected) finalListWorkers.add(worker)
@@ -107,7 +107,7 @@ class CenterTimeReport : View("Отчет по времени") {
                                     if (boxForSearchWorker.children.size != 0) boxForSearchWorker.children.remove(0, 1)
                                     val vBox = VBox()
                                     for (worker in listOfWorkers) {
-                                        val radioButton = RadioButton(worker)
+                                        val radioButton = RadioButton(worker.second)
                                         radioButton.isSelected = true
                                         radioButton.addEventFilter(MouseEvent.MOUSE_CLICKED) {
                                             if (radioButton.isSelected) finalListWorkers.add(worker)
@@ -126,12 +126,11 @@ class CenterTimeReport : View("Отчет по времени") {
                                     finalListWorkers.clear()
                                     val vBox = VBox()
                                     for (worker in listOfWorkers) {
-                                        val radioButton = RadioButton(worker)
+                                        val radioButton = RadioButton(worker.second)
                                         if (finalListWorkers.contains(worker)) radioButton.isSelected = true
                                         radioButton.addEventFilter(MouseEvent.MOUSE_CLICKED) {
                                             if (radioButton.isSelected) finalListWorkers.add(worker)
                                             else if (finalListWorkers.contains(worker)) finalListWorkers.remove(worker)
-                                            println(finalListWorkers)
                                         }
                                         radioButton.setPrefSize(270.0, 20.0)
                                         radioButton.setMaxSize(270.0, 20.0)
@@ -176,7 +175,7 @@ class CenterTimeReport : View("Отчет по времени") {
                     setSizeForTextField(250.0, 25.0, nameWorkerFd)
                     setSizeForAnchor(270.0, 200.0, searchWorker)
                     setSizeForVBox(250.0, 1000.0, boxForSearchWorker)
-                    setSizeForToggleButton(25.0, 25.0, selectAll)
+                    setSizeForToggleButton(27.0, 25.0, selectAll)
                 }
             }
         }

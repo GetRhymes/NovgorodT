@@ -14,43 +14,21 @@ import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.paint.Paint
 import tornadofx.*
+import java.sql.Array
+
 // метод для формирования 4 колонки таблицы отчета (сотрудники или готовая прод или незавершенная и там ассортимент)
-fun addEnumerationOfWorkers(parentToScroll: VBox, anchorPane: AnchorPane, label: String, listOfName: MutableList<String>, boxOfItem: VBox, boxOfItemRub: VBox, cond: Boolean, mapOfAmount: MutableMap<String, Double>, textFieldFirst: TextField, textFieldSecond: TextField, captainField: TextField, hoursBegin: TextField, hoursFinished: TextField) {
+fun addEnumerationOfItem(parentToScroll: VBox, anchorPane: AnchorPane, label: String, listOfName: MutableMap<Int, String>, boxOfItem: VBox, boxOfItemRub: VBox, cond: Boolean, mapOfAmount: MutableMap<Pair<Int, String>, Double>, textFieldFirst: TextField, textFieldSecond: TextField, captainField: TextField, hoursBegin: TextField, hoursFinished: TextField) {
     val lb = Label(label)
     setSizeForLabel(300.0, 30.0, lb)
     lb.addEventFilter(MouseEvent.MOUSE_CLICKED) {
-        searchField(
-            parentToScroll,
-            anchorPane,
-            listOfName,
-            boxOfItem,
-            boxOfItemRub,
-            cond,
-            mapOfAmount,
-            textFieldFirst,
-            textFieldSecond,
-            captainField,
-            hoursBegin,
-            hoursFinished
-        )
+        searchField(parentToScroll, anchorPane, listOfName, boxOfItem, boxOfItemRub, cond, mapOfAmount, textFieldFirst, textFieldSecond, captainField, hoursBegin, hoursFinished)
     }
     setStyleForLabel(lb, "#e0e0e0") // бежево-серый
     val currentList = filterTrueItem(boxOfItem, cond)
     val list = VBox()
     for (i in listOfName) {
-        val radioAndLb = createRadioButton(
-            i,
-            boxOfItem,
-            boxOfItemRub,
-            cond,
-            mapOfAmount,
-            textFieldFirst,
-            textFieldSecond,
-            captainField,
-            hoursBegin,
-            hoursFinished
-        )
-        if (checkCurrentCondition(currentList, i)) radioAndLb.second.isSelected = true
+        val radioAndLb = createRadioButton(i.key, i.value, boxOfItem, boxOfItemRub, cond, mapOfAmount, textFieldFirst, textFieldSecond, captainField, hoursBegin, hoursFinished)
+        if (checkCurrentCondition(currentList, i.value)) radioAndLb.second.isSelected = true
         val hBox = HBox()
         hBox.add(radioAndLb.second)
         hBox.add(radioAndLb.first)
@@ -60,15 +38,25 @@ fun addEnumerationOfWorkers(parentToScroll: VBox, anchorPane: AnchorPane, label:
     anchorPane.add(list)
 }
 // создаю бокс и добавляю в него сотрудников из бд
-fun addWorkersInColumn(boxOfItems: VBox, name: String, captainField: TextField) {
+fun addWorkersInColumn(boxOfItems: VBox, name: String, id: Int, captainField: TextField) {
     val rb = RadioButton(name)
-    rb.addEventFilter(MouseEvent.MOUSE_CLICKED) { if (rb.isSelected) captainField.text = name }
-    rb.addEventFilter(KeyEvent.KEY_RELEASED) { if (rb.isSelected) captainField.text = name }
+    rb.addEventFilter(MouseEvent.MOUSE_CLICKED) {
+        if (rb.isSelected) {
+            captainField.text = name
+            idAndCaptain = Pair(id, name)
+        }
+    }
+    rb.addEventFilter(KeyEvent.KEY_RELEASED) {
+        if (rb.isSelected) {
+            captainField.text = name
+            idAndCaptain = Pair(id, name)
+        }
+    }
     toggleGroup.toggles += rb
     boxOfItems.add(rb)
 }
 // создаю бокс и добавляю готовую продукцию
-fun addProductsInColumn(boxOfProducts: VBox, boxOfProductsInRub: VBox, name: String, mapOfAmount: MutableMap<String, Double>, textFieldFirst: TextField, textFieldSecond: TextField, hoursBegin: TextField, hoursFinished: TextField) {
+fun addProductsInColumn(boxOfProducts: VBox, boxOfProductsInRub: VBox, name: String, id: Int, mapOfAmount: MutableMap<Pair<Int, String>, Double>, textFieldFirst: TextField, textFieldSecond: TextField, hoursBegin: TextField, hoursFinished: TextField) {
     val dbHandler = DatabaseHandler()
     val listOfFinishedProd = mutableMapOf<String, Pair<String, String>>()
     val listOfUnfinishedProd = mutableMapOf<String, Pair<String, String>>()
@@ -81,7 +69,7 @@ fun addProductsInColumn(boxOfProducts: VBox, boxOfProductsInRub: VBox, name: Str
         listOfUnfinishedProd[requestUnfinishedProd.getString(2)] = Pair(requestUnfinishedProd.getString(3), requestUnfinishedProd.getString(4))
     }
 
-    mapOfAmount[name] = 0.0
+    mapOfAmount[id to name] = 0.0
     val hBox = HBox()
     hBox.prefWidth = 225.0
     hBox.prefHeight = hBox.minHeight
@@ -109,57 +97,57 @@ fun addProductsInColumn(boxOfProducts: VBox, boxOfProductsInRub: VBox, name: Str
     setSizeForTextField(75.0, 25.0, textField)
     textField.addEventHandler(KeyEvent.KEY_RELEASED) {
         if (textField.text == "") {
-            mapOfAmount[name] = 0.0
+            mapOfAmount[id to name] = 0.0
             textFSecond.text = "0"
             changeDataInSummarize(textFieldFirst, textFieldSecond, hoursBegin, hoursFinished)
         }
         else {
-            mapOfAmount[name] = textField.text.toDouble()
+            mapOfAmount[id to name] = textField.text.toDouble()
             if (listOfFinishedProd.containsKey(name)) {
-                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[name]!! * listOfFinishedProd[name]!!.first.toDouble()).toString()
-                else textFSecond.text = (mapOfAmount[name]!! * listOfFinishedProd[name]!!.second.toDouble()).toString()
+                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[id to name]!! * listOfFinishedProd[name]!!.first.toDouble()).toString()
+                else textFSecond.text = (mapOfAmount[id to name]!! * listOfFinishedProd[name]!!.second.toDouble()).toString()
             }
             if (listOfUnfinishedProd.containsKey(name)) {
-                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
-                else textFSecond.text = (mapOfAmount[name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
+                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[id to name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
+                else textFSecond.text = (mapOfAmount[id to name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
             }
             changeDataInSummarize(textFieldFirst, textFieldSecond, hoursBegin, hoursFinished)
         }
     }
     hoursBegin.addEventHandler(KeyEvent.KEY_RELEASED) {
         if (textField.text == "") {
-            mapOfAmount[name] = 0.0
+            mapOfAmount[id to name] = 0.0
             textFSecond.text = "0"
             changeDataInSummarize(textFieldFirst, textFieldSecond, hoursBegin, hoursFinished)
         }
         else {
-            mapOfAmount[name] = textField.text.toDouble()
+            mapOfAmount[id to name] = textField.text.toDouble()
             if (listOfFinishedProd.containsKey(name)) {
-                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[name]!! * listOfFinishedProd[name]!!.first.toDouble()).toString()
-                else textFSecond.text = (mapOfAmount[name]!! * listOfFinishedProd[name]!!.second.toDouble()).toString()
+                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[id to name]!! * listOfFinishedProd[name]!!.first.toDouble()).toString()
+                else textFSecond.text = (mapOfAmount[id to name]!! * listOfFinishedProd[name]!!.second.toDouble()).toString()
             }
             if (listOfUnfinishedProd.containsKey(name)) {
-                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
-                else textFSecond.text = (mapOfAmount[name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
+                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[id to name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
+                else textFSecond.text = (mapOfAmount[id to name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
             }
             changeDataInSummarize(textFieldFirst, textFieldSecond, hoursBegin, hoursFinished)
         }
     }
     hoursFinished.addEventHandler(KeyEvent.KEY_RELEASED) {
         if (textField.text == "") {
-            mapOfAmount[name] = 0.0
+            mapOfAmount[id to name] = 0.0
             textFSecond.text = "0"
             changeDataInSummarize(textFieldFirst, textFieldSecond, hoursBegin, hoursFinished)
         }
         else {
-            mapOfAmount[name] = textField.text.toDouble()
+            mapOfAmount[id to name] = textField.text.toDouble()
             if (listOfFinishedProd.containsKey(name)) {
-                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[name]!! * listOfFinishedProd[name]!!.first.toDouble()).toString()
-                else textFSecond.text = (mapOfAmount[name]!! * listOfFinishedProd[name]!!.second.toDouble()).toString()
+                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[id to name]!! * listOfFinishedProd[name]!!.first.toDouble()).toString()
+                else textFSecond.text = (mapOfAmount[id to name]!! * listOfFinishedProd[name]!!.second.toDouble()).toString()
             }
             if (listOfUnfinishedProd.containsKey(name)) {
-                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
-                else textFSecond.text = (mapOfAmount[name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
+                if (checkTimeEntry(hoursBegin, hoursFinished)!!) textFSecond.text = (mapOfAmount[id to name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
+                else textFSecond.text = (mapOfAmount[id to name]!! * listOfUnfinishedProd[name]!!.first.toDouble()).toString()
             }
             changeDataInSummarize(textFieldFirst, textFieldSecond, hoursBegin, hoursFinished)
         }
@@ -227,8 +215,8 @@ fun deleteWorkersInColumn(boxOfWorkers: VBox, name: String) {
     toggleGroup.toggles.removeIf { parse(it.toString()) == name }
 }
 // удаление продукта из колонки
-fun deleteProductInColumn(boxOfProduct: VBox, boxOfProductsInRub: VBox, name: String, mapOfAmount: MutableMap<String, Double>) {
-    mapOfAmount.remove(name)
+fun deleteProductInColumn(boxOfProduct: VBox, boxOfProductsInRub: VBox, name: String, id: Int, mapOfAmount: MutableMap<Pair<Int, String>, Double>) {
+    mapOfAmount.remove(Pair(id, name))
     boxOfProduct.children.removeIf {
         val parts = it.getChildList()
         parse2(parts!![0].getChildList().toString()) == name
@@ -307,29 +295,29 @@ fun checkCurrentCondition(listOfTrueItem: MutableList<String>, name: String): Bo
     return false
 }
 // подсчитывает стоимость продукта исходя из кол-ва кг
-fun calculateSummarize(mapOfAmountForFinished: MutableMap<String, Double>, mapOfAmountForUnfinished: MutableMap<String, Double>, hoursBegin: TextField, hoursFinished: TextField): List<Double> {
-    val listOfFinishedProd = mutableMapOf<String, Pair<String, String>>()
-    val listOfUnfinishedProd = mutableMapOf<String, Pair<String, String>>()
+fun calculateSummarize(mapOfAmountForFinished: MutableMap<Pair<Int, String>, Double>, mapOfAmountForUnfinished: MutableMap<Pair<Int, String>, Double>, hoursBegin: TextField, hoursFinished: TextField): List<Double> {
+    val listOfFinishedProd = mutableMapOf<Int, Pair<String, String>>()
+    val listOfUnfinishedProd = mutableMapOf<Int, Pair<String, String>>()
     val dbHandler = DatabaseHandler()
     val requestFinishedProd = dbHandler.getFinishProd()
     val requestUnfinishedProd = dbHandler.getUnFinishProd()
     while (requestFinishedProd!!.next()) {
-        listOfFinishedProd[requestFinishedProd.getString(2)] = Pair(requestFinishedProd.getString(3), requestFinishedProd.getString(4))
+        listOfFinishedProd[requestFinishedProd.getInt(1)] = Pair(requestFinishedProd.getString(3), requestFinishedProd.getString(4))
     }
     while (requestUnfinishedProd!!.next()) {
-        listOfUnfinishedProd[requestUnfinishedProd.getString(2)] = Pair(requestUnfinishedProd.getString(3), requestUnfinishedProd.getString(4))
+        listOfUnfinishedProd[requestUnfinishedProd.getInt(1)] = Pair(requestUnfinishedProd.getString(3), requestUnfinishedProd.getString(4))
     }
     var firstSum = 0.0
     var secondSum = 0.0
     if (mapOfAmountForFinished.isNotEmpty()) {
         if (checkTimeEntry(hoursBegin, hoursFinished)!!)
-            mapOfAmountForFinished.forEach { firstSum += it.value * listOfFinishedProd[it.key]!!.first.toDouble() }
-        else mapOfAmountForFinished.forEach { firstSum += it.value * listOfFinishedProd[it.key]!!.second.toDouble() }
+            mapOfAmountForFinished.forEach { firstSum += it.value * listOfFinishedProd[it.key.first]!!.first.toDouble() }
+        else mapOfAmountForFinished.forEach { firstSum += it.value * listOfFinishedProd[it.key.first]!!.second.toDouble() }
     }
     if (mapOfAmountForUnfinished.isNotEmpty()) {
         if (checkTimeEntry(hoursBegin, hoursFinished)!!)
-            mapOfAmountForUnfinished.forEach { secondSum += it.value * listOfUnfinishedProd[it.key]!!.first.toDouble() }
-        else mapOfAmountForUnfinished.forEach { secondSum += it.value * listOfUnfinishedProd[it.key]!!.second.toDouble() }
+            mapOfAmountForUnfinished.forEach { secondSum += it.value * listOfUnfinishedProd[it.key.first]!!.first.toDouble() }
+        else mapOfAmountForUnfinished.forEach { secondSum += it.value * listOfUnfinishedProd[it.key.first]!!.second.toDouble() }
     }
     return listOf(firstSum, secondSum, firstSum + secondSum)
 }
@@ -346,7 +334,7 @@ fun changeDataInSummarize(textFieldFirst: TextField, textFieldSecond: TextField,
     else textFieldSecond.text = (result[2] / boxOfWorkers.children.size).toString()
 }
 // создает радиокнопки для выбора полей (сотрудники продукт)
-fun createRadioButton(name: String, boxOfItem: VBox, boxOfItemRub: VBox, cond: Boolean, mapOfAmount: MutableMap<String, Double>, textFieldFirst: TextField, textFieldSecond: TextField, captainField: TextField, hoursBegin: TextField, hoursFinished: TextField): Pair<Label, RadioButton> {
+fun createRadioButton(id: Int, name: String, boxOfItem: VBox, boxOfItemRub: VBox, cond: Boolean, mapOfAmount: MutableMap<Pair<Int, String>, Double>, textFieldFirst: TextField, textFieldSecond: TextField, captainField: TextField, hoursBegin: TextField, hoursFinished: TextField): Pair<Label, RadioButton> {
     val newLb = Label(name)
     newLb.alignment = Pos.CENTER
 
@@ -354,14 +342,16 @@ fun createRadioButton(name: String, boxOfItem: VBox, boxOfItemRub: VBox, cond: B
     radioButton.addEventFilter(MouseEvent.MOUSE_CLICKED) {
         if (radioButton.isSelected)  {
             if (cond) {
-                addWorkersInColumn(boxOfItem, name, captainField)
+                addWorkersInColumn(boxOfItem, name, id, captainField)
                 changeDataInSummarize(textFieldFirst, textFieldSecond, hoursBegin, hoursFinished)
+                idAndNameWorkers[id] = name
             }
             else {
                 addProductsInColumn(
                     boxOfItem,
                     boxOfItemRub,
                     name,
+                    id,
                     mapOfAmount,
                     textFieldFirst,
                     textFieldSecond,
@@ -375,10 +365,10 @@ fun createRadioButton(name: String, boxOfItem: VBox, boxOfItemRub: VBox, cond: B
             if (cond) {
                 deleteWorkersInColumn(boxOfItem, name)
                 changeDataInSummarize(textFieldFirst, textFieldSecond, hoursBegin, hoursFinished)
-
+                idAndNameWorkers.remove(id)
             }
             else {
-                deleteProductInColumn(boxOfItem, boxOfItemRub, name, mapOfAmount)
+                deleteProductInColumn(boxOfItem, boxOfItemRub, name, id, mapOfAmount)
                 changeDataInSummarize(textFieldFirst, textFieldSecond, hoursBegin, hoursFinished)
             }
         }
@@ -387,7 +377,7 @@ fun createRadioButton(name: String, boxOfItem: VBox, boxOfItemRub: VBox, cond: B
     return Pair(newLb, radioButton)
 }
 // метод для создания текстфилда благодаря которому можно искать по названию поля из 4 колонки (сотрудник продукт)
-fun searchField(parentToScroll: VBox, anchorPane: AnchorPane, listOfName: MutableList<String>, boxOfItem: VBox, boxOfItemRub: VBox, cond: Boolean, mapOfAmount: MutableMap<String, Double>, textFieldFirst: TextField, textFieldSecond: TextField, captainField: TextField, hoursBegin: TextField, hoursFinished: TextField) {
+fun searchField(parentToScroll: VBox, anchorPane: AnchorPane, listOfName: MutableMap<Int, String>, boxOfItem: VBox, boxOfItemRub: VBox, cond: Boolean, mapOfAmount: MutableMap<Pair<Int, String>, Double>, textFieldFirst: TextField, textFieldSecond: TextField, captainField: TextField, hoursBegin: TextField, hoursFinished: TextField) {
     val items = VBox()
     val searchField = TextField()
     var currentList = filterTrueItem(boxOfItem, cond)
@@ -400,7 +390,8 @@ fun searchField(parentToScroll: VBox, anchorPane: AnchorPane, listOfName: Mutabl
         anchorPane.children.removeAt(0)
         for (i in listOfName)  {
             val radioAndLb = createRadioButton(
-                i,
+                i.key,
+                i.value,
                 boxOfItem,
                 boxOfItemRub,
                 cond,
@@ -411,8 +402,8 @@ fun searchField(parentToScroll: VBox, anchorPane: AnchorPane, listOfName: Mutabl
                 hoursBegin,
                 hoursFinished
             )
-            if (checkCurrentCondition(currentList, i)) radioAndLb.second.isSelected = true
-            if (i.toLowerCase().contains(searchField.text.toLowerCase())) {
+            if (checkCurrentCondition(currentList, i.value)) radioAndLb.second.isSelected = true
+            if (i.value.toLowerCase().contains(searchField.text.toLowerCase())) {
                 val hBox = HBox()
                 hBox.add(radioAndLb.second)
                 hBox.add(radioAndLb.first)
@@ -424,7 +415,8 @@ fun searchField(parentToScroll: VBox, anchorPane: AnchorPane, listOfName: Mutabl
 
     for (i in listOfName) {
         val radioAndLb = createRadioButton(
-            i,
+            i.key,
+            i.value,
             boxOfItem,
             boxOfItemRub,
             cond,
@@ -435,7 +427,7 @@ fun searchField(parentToScroll: VBox, anchorPane: AnchorPane, listOfName: Mutabl
             hoursBegin,
             hoursFinished
         )
-        if (checkCurrentCondition(currentList, i)) radioAndLb.second.isSelected = true
+        if (checkCurrentCondition(currentList, i.value)) radioAndLb.second.isSelected = true
         val hBox = HBox()
         hBox.add(radioAndLb.second)
         hBox.add(radioAndLb.first)
@@ -454,51 +446,35 @@ fun searchField(parentToScroll: VBox, anchorPane: AnchorPane, listOfName: Mutabl
     anchorPane.add(items)
 
 }
-// считываю инфомрацию для отправки бд по сотрудникам
-fun readDataForWorkers(): MutableList<String> {
-    val listOfWorkers = mutableListOf<String>()
-    for (workers in boxOfWorkers.children) {
-        listOfWorkers.add(parse(workers.toString()))
-    }
-    return listOfWorkers
-}
-// инф для отправки бд по продуктам в кг
-fun readDataForProdK(): Pair<MutableList<Pair<String, String>>, MutableList<Pair<String, String>>> {
-    val listOfFinishProdK = mutableListOf<Pair<String, String>>()
-    val listOfUnfinishedProdK = mutableListOf<Pair<String, String>>()
-    mapOfAmountForFinished.forEach { listOfFinishProdK.add(Pair(it.key, it.value.toString())) }
-    mapOfAmountForUnfinished.forEach { listOfUnfinishedProdK.add(Pair(it.key, it.value.toString())) }
-    return Pair(listOfFinishProdK, listOfUnfinishedProdK)
-}
-// инф для отпраки бд по продуктам в руб
-fun readDataForProdR(hoursBegin: TextField, hoursFinished: TextField): Pair<MutableList<Pair<String, String>>, MutableList<Pair<String, String>>> {
+// инф для отпраки бд по продуктам
+fun readDataForProd(hoursBegin: TextField, hoursFinished: TextField): Pair<MutableMap<Int, List<String>>, MutableMap<Int, List<String>>> {
     val dbHandler = DatabaseHandler()
-    val listOfFinishedProd = mutableMapOf<String, Pair<String, String>>()
-    val listOfUnfinishedProd = mutableMapOf<String, Pair<String, String>>()
+    val listOfFinishedProd = mutableMapOf<Int, Pair<String, String>>()
+    val listOfUnfinishedProd = mutableMapOf<Int, Pair<String, String>>()
     val requestFinishedProd = dbHandler.getFinishProd()
     val requestUnfinishedProd = dbHandler.getUnFinishProd()
     while (requestFinishedProd!!.next()) {
-        listOfFinishedProd[requestFinishedProd.getString(2)] = Pair(requestFinishedProd.getString(3), requestFinishedProd.getString(4))
+        listOfFinishedProd[requestFinishedProd.getInt(1)] = Pair(requestFinishedProd.getString(3), requestFinishedProd.getString(4))
     }
     while (requestUnfinishedProd!!.next()) {
-        listOfUnfinishedProd[requestUnfinishedProd.getString(2)] = Pair(requestUnfinishedProd.getString(3), requestUnfinishedProd.getString(4))
+        listOfUnfinishedProd[requestUnfinishedProd.getInt(1)] = Pair(requestUnfinishedProd.getString(3), requestUnfinishedProd.getString(4))
     }
-    val listOfFinishProdR = mutableListOf<Pair<String, String>>()
-    val listOfUnfinishedProdR = mutableListOf<Pair<String, String>>()
+    val listOfFinishProdR = mutableMapOf<Int, List<String>>()
+    val listOfUnfinishedProdR = mutableMapOf<Int, List<String>>()
     if (checkTimeEntry(hoursBegin, hoursFinished)!!) {
         mapOfAmountForFinished.forEach {
-            listOfFinishProdR.add(Pair(it.key, (it.value * listOfFinishedProd[it.key]!!.first.toDouble()).toString()))
+            listOfFinishProdR[it.key.first] = listOf(it.key.second, it.value.toString(), (it.value * listOfFinishedProd[it.key.first]!!.first.toDouble()).toString())
         }
         mapOfAmountForUnfinished.forEach {
-            listOfUnfinishedProdR.add(Pair(it.key, (it.value * listOfUnfinishedProd[it.key]!!.first.toDouble()).toString()))
+            listOfUnfinishedProdR[it.key.first] = listOf(it.key.second, it.value.toString(), (it.value * listOfUnfinishedProd[it.key.first]!!.first.toDouble()).toString())
         }
     }
     else {
         mapOfAmountForFinished.forEach {
-            listOfFinishProdR.add(Pair(it.key, (it.value * listOfFinishedProd[it.key]!!.second.toDouble()).toString()))
+            listOfFinishProdR[it.key.first] = listOf(it.key.second, it.value.toString(), (it.value * listOfFinishedProd[it.key.first]!!.second.toDouble()).toString())
         }
         mapOfAmountForUnfinished.forEach {
-            listOfUnfinishedProdR.add(Pair(it.key, (it.value * listOfUnfinishedProd[it.key]!!.second.toDouble()).toString()))
+            listOfUnfinishedProdR[it.key.first] = listOf(it.key.second, it.value.toString(), (it.value * listOfUnfinishedProd[it.key.first]!!.second.toDouble()).toString())
         }
     }
     return Pair(listOfFinishProdR, listOfUnfinishedProdR)
@@ -507,7 +483,6 @@ fun readDataForProdR(hoursBegin: TextField, hoursFinished: TextField): Pair<Muta
 fun checkTimeEntry(hoursBegin: TextField, hoursFinished: TextField): Boolean? {
     if (hoursBegin.text != "" && hoursFinished.text != "") {
         if (hoursFinished.text.toInt() in 19..21 && hoursBegin.text.toInt() >= 7) return true
-
         if ((hoursFinished.text.toInt() <= 7 || hoursFinished.text.toInt() >= 19)  && (hoursBegin.text.toInt() >= 18 || hoursBegin.text.toInt() <= 7)) return false
     } else return true
     return true
@@ -518,17 +493,22 @@ fun addPlace(anchorPane: AnchorPane, placeField: TextField, parentToScroll: VBox
     parentToScroll.children.remove(0, 1)
     if (parentToScroll.children.isNotEmpty()) parentToScroll.children.remove(0, 1)
     val dbHandler = DatabaseHandler()
-    val listOfPlace = mutableListOf<String>()
+    val listOfPlace = mutableMapOf<Int, String>()
     val placeRequest = dbHandler.getPlace()
     while (placeRequest!!.next()) {
-        listOfPlace.add(placeRequest.getString(2))
+        listOfPlace[placeRequest.getInt(1)] = placeRequest.getString(2)
     }
     val toggleGroupOfPlace = ToggleGroup()
     val vBox = VBox()
     for (place in listOfPlace) {
-        val radioButton = RadioButton(place)
+        val radioButton = RadioButton(place.value)
         toggleGroupOfPlace.toggles.add(radioButton)
-        radioButton.addEventFilter(MouseEvent.MOUSE_CLICKED) { if (radioButton.isSelected) placeField.text = radioButton.text }
+        radioButton.addEventFilter(MouseEvent.MOUSE_CLICKED) {
+            if (radioButton.isSelected) {
+                placeField.text = radioButton.text
+                idAndPlace = Pair(place.key, place.value)
+            }
+        }
         vBox.add(radioButton)
     }
     val label = Label("Участок")

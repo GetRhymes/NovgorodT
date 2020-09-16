@@ -1,16 +1,15 @@
 package generateReport
 
-import dataBase.changeDataForReportExcel
 import dataBase.getDataForReportCaptain
+import dataBase.getDataReportForNeedDate
 import generalStyle.*
 import javafx.geometry.Pos
-import javafx.scene.control.CheckBox
 import javafx.scene.control.RadioButton
 import javafx.scene.control.TextField
 import javafx.scene.control.ToggleGroup
+import javafx.scene.input.MouseEvent
 import javafx.scene.layout.AnchorPane
 import javafx.scene.layout.VBox
-import javafx.scene.paint.Color
 import javafx.scene.paint.Paint
 import reportTable.createReportExcel
 import tornadofx.*
@@ -23,9 +22,9 @@ class CenterDayReport : View("Отчет за день") {
                 var boxOfCaptainPlace: AnchorPane by singleAssign()
                 var namePLaceFd: TextField by singleAssign()
                 var nameCaptainFd: TextField by singleAssign()
+                var currentCaptain = Pair(0, "")
+                var currentPlace = Pair(0, "")
                 vbox {
-                    var dayOrNight = ""
-                    val tgg = ToggleGroup()
                     translateX = 215.0
                     translateY = 10.0
                     val nameReport = label("Отчет за день") {
@@ -66,18 +65,20 @@ class CenterDayReport : View("Отчет за день") {
                             nameCaptainFd = textfield {
                                 promptText = "Введите имя"
                                 addEventFilter(javafx.scene.input.KeyEvent.KEY_RELEASED) {
-                                    val listOfItems = getDataForReportCaptain(dayReportFd.value.toString(), dayReportFd.value.toString(), "")
+                                    val listOfItems = getDataForReportCaptain(dayReportFd.value.toString(), dayReportFd.value.toString(), Pair(0, ""))
                                     val toggleGroup = ToggleGroup()
                                     if (boxOfCaptainPlace.children.size != 0) boxOfCaptainPlace.children.remove(0, 1)
                                     val vBox = VBox()
-                                    for (place in listOfItems) {
-                                        if (place[0].toLowerCase().contains(text.toString().toLowerCase())) {
-                                            val radioButton = RadioButton("${place[0]} ${place[2]}")
+                                    for (item in listOfItems) {
+                                        if (item[0].second.toLowerCase().contains(text.toString().toLowerCase())) {
+                                            val radioButton = RadioButton("${item[0].second} ${item[2].second}")
                                             toggleGroup.toggles.add(radioButton)
                                             radioButton.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED) {
                                                 if (radioButton.isSelected) {
-                                                    text = place[0]
-                                                    namePLaceFd.text = place[2]
+                                                    text = item[0].second
+                                                    namePLaceFd.text = item[2].second
+                                                    currentCaptain = item[0]
+                                                    currentPlace = item[2]
                                                 }
                                             }
                                             radioButton.setPrefSize(455.0, 20.0)
@@ -93,19 +94,19 @@ class CenterDayReport : View("Отчет за день") {
                                 promptText = "Название учатска"
                                 translateX = 5.0
                                 addEventFilter(javafx.scene.input.KeyEvent.KEY_RELEASED) {
-                                    val listOfItems = getDataForReportCaptain(dayReportFd.value.toString(), dayReportFd.value.toString(), "")
+                                    val listOfItems = getDataForReportCaptain(dayReportFd.value.toString(), dayReportFd.value.toString(), Pair(0, ""))
                                     val toggleGroup = ToggleGroup()
                                     if (boxOfCaptainPlace.children.size != 0) boxOfCaptainPlace.children.remove(0, 1)
                                     val vBox = VBox()
-                                    for (place in listOfItems) {
-                                        if (place[2].toLowerCase().contains(text.toString().toLowerCase())) {
+                                    for (item in listOfItems) {
+                                        if (item[2].second.toLowerCase().contains(text.toString().toLowerCase())) {
                                             val radioButton = RadioButton()
-                                            radioButton.text = "${place[0]} ${place[2]}"
+                                            radioButton.text = "${item[0].second} ${item[2].second}"
                                             toggleGroup.toggles.add(radioButton)
-                                            radioButton.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED) {
+                                            radioButton.addEventFilter(MouseEvent.MOUSE_CLICKED) {
                                                 if (radioButton.isSelected) {
-                                                    text = place[2]
-                                                    nameCaptainFd.text = place[0]
+                                                    text = item[2].second
+                                                    nameCaptainFd.text = item[0].second
                                                 }
                                             }
                                             println(radioButton.style.length)
@@ -135,7 +136,7 @@ class CenterDayReport : View("Отчет за день") {
 
                     val generate = button ("Сгенерировать") {
                         translateY = 70.0
-                        action { createReportExcel(changeDataForReportExcel(dayReportFd.value.toString(), nameCaptainFd.text, namePLaceFd.text)) } // сам отчет
+                        action { createReportExcel(getDataReportForNeedDate(dayReportFd.value.toString(), currentCaptain, currentPlace)) } // сам отчет
                     }
                     // Установка размеров
                     setSizeForButton(300.0, 25.0, generate)

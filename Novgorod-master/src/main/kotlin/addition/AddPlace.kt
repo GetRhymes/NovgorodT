@@ -26,14 +26,21 @@ class AddPlace : Fragment("Участок") {
                         translateX = 50.0
                         translateY = 45.0
                         val nameProdLb = label("Название участка") { alignment = Pos.BOTTOM_CENTER }
-                        val nameProdFd = textfield { promptText = "Название участка" }
+                        val nameProdFd = textfield {
+                            promptText = "Название участка"
+                            filterInput { it.controlNewText.matches(Regex("""[а-яА-ЯёЁ]+""")) || it.controlNewText.matches(Regex("""[а-яА-ЯёЁ]+\s""")) || it.controlNewText.matches(Regex("""[а-яА-ЯёЁ]+\s[а-яА-ЯёЁ]+"""))}
+                        }
                         val addB = button("Добавить") {
                             translateY = 185.0
                             translateX = -50.0
                             action {
-                                val dbHandler = DatabaseHandler()
-                                dbHandler.addPlace(nameProdFd.text)
-                                println("access")
+                                if (nameProdFd.text != "") {
+                                    val dbHandler = DatabaseHandler()
+                                    val answer = dbHandler.addPlace(nameProdFd.text.trim())
+                                    nameProdFd.text = ""
+                                    if (answer > 0) style { borderColor = multi(box(Paint.valueOf("#4caf50"))) }
+                                    else style { borderColor = multi(box(Paint.valueOf("#f44336"))) }
+                                } else style { borderColor = multi(box(Paint.valueOf("#f44336"))) }
                             }
                         }
                         // Label

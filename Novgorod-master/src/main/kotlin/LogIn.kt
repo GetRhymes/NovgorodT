@@ -7,16 +7,17 @@ import javafx.beans.property.SimpleStringProperty
 import javafx.geometry.Pos
 import javafx.scene.text.FontWeight
 import tornadofx.*
-
+var user = false
 class LogIn : Fragment("Введите имя и пароль") {
     override val root = borderpane {
 // Окно авторизации
-        val listUsers = mutableListOf<String>() // лист пользователей
+        val listUsers = mutableListOf<Pair<String,String>>() // лист пользователей
         val dbHandler = DatabaseHandler()
         val requestAuth = dbHandler.getAuth()
         while (requestAuth!!.next()) {
-            listUsers.add(requestAuth.getString(2))
+            listUsers.add(Pair(requestAuth.getString(2), requestAuth.getString(3)))
         } // делаю вызов с бд , запрос на пользователей, и закидываю в лист
+        println(listUsers)
         center {
             anchorpane {
                 setPrefSize(600.0, 400.0) // 600 и 400 размеры окна авторизации, не завожу константы потому что нет смысла выделять память на эти значения так как часто могу менять их
@@ -33,7 +34,16 @@ class LogIn : Fragment("Введите имя и пароль") {
                         translateY = 10.0 // аналогично комменту выше,  перемещение по оси Y
                         style { fontWeight = FontWeight.BOLD }
                         action {
-                            if (loginFd.text == listUsers[0] || loginFd.text == listUsers[1]) { // делаю проверку на юзера
+
+                            if (loginFd.text == listUsers[0].first && passFd.text == listUsers[0].second) {
+                                user = true
+                                close() // закрываю окно авторизации
+                                val window = find<MainMenu>() // ищу главное меню
+                                window.openWindow() // Открываю его
+                                window.currentStage!!.isResizable = false // запрещаю изменение размера окна, так как работаю с фиксированной величиной, чтобы не делать оптимизацию под разные окна
+                            }
+                            if (loginFd.text == listUsers[1].first && passFd.text == listUsers[1].second) {
+                                user = false
                                 close() // закрываю окно авторизации
                                 val window = find<MainMenu>() // ищу главное меню
                                 window.openWindow() // Открываю его

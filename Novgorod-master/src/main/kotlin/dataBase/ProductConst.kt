@@ -1,8 +1,8 @@
 package dataBase
 
 class ProductConst {
-    val tableFinish = "finishproducts"
-    val tableUnFinish = "unfinishproducts"
+    val tableFinish = "finishedproducts"
+    val tableUnFinish = "unfinishedproducts"
     val name = "name"
     val priceDay = "priceday"
     val priceNight = "pricenight"

@@ -6,6 +6,6 @@ data class DataWorkerPeriod( // дата класс для облегчения 
     var timeFinish: String,
     var listFinishedProd: MutableList<List<String>>,
     var listUnfinishedProd: MutableList<List<String>>,
-    var totalFinish: String,
-    var totalUnfinished: String
+    var totalFinish: Double,
+    var totalUnfinished: Double
 )

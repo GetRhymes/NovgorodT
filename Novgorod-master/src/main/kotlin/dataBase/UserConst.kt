@@ -1,9 +1,9 @@
 package dataBase
 
 class UserConst {
-    val table = "worker"
+    val table = "workers"
     val lastName = "lastname"
     val firstName = "firstname"
-    val fatherName = "fathername"
+    val fatherName = "patronymic"
     val code = "code"
 }

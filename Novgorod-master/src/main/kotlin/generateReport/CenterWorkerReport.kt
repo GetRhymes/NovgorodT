@@ -1,19 +1,14 @@
 package generateReport
 
 import dataBase.DatabaseHandler
-import dataBase.changeDataForReportExcel
 import dataBase.getDataReportForNeedWorker
 import generalStyle.*
 import javafx.geometry.Pos
 import javafx.scene.control.RadioButton
-import javafx.scene.control.ToggleGroup
 import javafx.scene.layout.AnchorPane
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Paint
-import reportTable.createReportExcel
 import tornadofx.*
-import java.awt.event.KeyEvent
-import java.awt.event.MouseEvent
 import java.time.LocalDate
 
 class CenterWorkerReport : View("Отчет по сотруднику") {
@@ -22,12 +17,13 @@ class CenterWorkerReport : View("Отчет по сотруднику") {
         var searchWorker: AnchorPane by singleAssign()
         var boxForSearchWorker: VBox by singleAssign()
         val dbHandler = DatabaseHandler()
-        val listOfWorkers = mutableListOf<String>()
+        val listOfWorkers = mutableListOf<Pair<Int, String>>()
         val requestWorker = dbHandler.getWorker()
         while (requestWorker!!.next()) {
             val name = "${requestWorker.getString(2)} ${requestWorker.getString(3)} ${requestWorker.getString(4)} # ${requestWorker.getString(5)}"
-            listOfWorkers.add(name)
+            listOfWorkers.add(requestWorker.getInt(1) to name)
         } // запрашиваю из бд список сотрудников
+        var currentWorker = Pair(0, "")
         center {
             anchorpane {
                 vbox {
@@ -77,11 +73,12 @@ class CenterWorkerReport : View("Отчет по сотруднику") {
                             if (boxForSearchWorker.children.size != 0) boxForSearchWorker.children.remove(0, 1)
                             val vBox = VBox()
                             for (worker in listOfWorkers) {
-                                if (worker.toLowerCase().contains(text.toString().toLowerCase())) {
-                                    val radioButton = RadioButton(worker)
+                                if (worker.second.toLowerCase().contains(text.toString().toLowerCase())) {
+                                    val radioButton = RadioButton(worker.second)
                                     radioButton.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED) {
                                         if (radioButton.isSelected) {
                                             text = radioButton.text
+                                            currentWorker = worker
                                         }
                                     }
                                     radioButton.setPrefSize(270.0, 20.0)
@@ -108,7 +105,7 @@ class CenterWorkerReport : View("Отчет по сотруднику") {
                         translateY = 150.0
                         action { // генерирую отчет
                             createReportExcelForWorker(
-                                getDataReportForNeedWorker(dayLeftFd.value.toString(), dayRightFd.value.toString(), nameWorkerFd.text),
+                                getDataReportForNeedWorker(dayLeftFd.value.toString(), dayRightFd.value.toString(), currentWorker),
                                 nameWorkerFd.text,
                                 dayLeftFd.value.toString(),
                                 dayRightFd.value.toString()

@@ -16,12 +16,13 @@ class CenterCaptainReport : View("Отчет по бригадирам") {
     override val root = borderpane {
         var searchPlace: AnchorPane by singleAssign()
         var boxForSearchPlace: VBox by singleAssign()
-        val listOfPlace = mutableListOf<String>()
+        val listOfPlace = mutableListOf<Pair<Int, String>>()
         val dbHandler = DatabaseHandler()
         val placeRequest = dbHandler.getPlace()
         while (placeRequest!!.next()) {
-            listOfPlace.add(placeRequest.getString(2))
+            listOfPlace.add(placeRequest.getInt(1) to placeRequest.getString(2))
         }
+        var currentPlace = Pair(0, "")
         center {
             anchorpane {
                 vbox {
@@ -70,12 +71,13 @@ class CenterCaptainReport : View("Отчет по бригадирам") {
                             if (boxForSearchPlace.children.size != 0) boxForSearchPlace.children.remove(0, 1)
                             val vBox = VBox()
                             for (place in listOfPlace) {
-                                if (place.toLowerCase().contains(text.toString().toLowerCase())) {
-                                    val radioButton = RadioButton(place)
+                                if (place.second.toLowerCase().contains(text.toString().toLowerCase())) {
+                                    val radioButton = RadioButton(place.second)
                                     toggleGroup.toggles.add(radioButton)
                                     radioButton.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED) {
                                         if (radioButton.isSelected) {
                                             text = radioButton.text
+                                            currentPlace = place
                                         }
                                     }
                                     radioButton.setPrefSize(270.0, 20.0)
@@ -105,7 +107,7 @@ class CenterCaptainReport : View("Отчет по бригадирам") {
                                 createReportForCaptain(
                                         dayLeftFd.value.toString(),
                                         dayRightFd.value.toString(),
-                                        getDataForReportCaptain(dayLeftFd.value.toString(), dayRightFd.value.toString(), placeFd.text)
+                                        getDataForReportCaptain(dayLeftFd.value.toString(), dayRightFd.value.toString(), currentPlace)
                                 )
                         }
                     }

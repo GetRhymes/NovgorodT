@@ -25,9 +25,6 @@ class AddProduct : Fragment("Продукт") {
                         }
                     }
                     var cond: Boolean? = null
-                    var name = ""
-                    var priceDay = ""
-                    var priceNight = ""
                     vbox {
                         translateX = 75.0
                         translateY = 45.0
@@ -37,17 +34,36 @@ class AddProduct : Fragment("Продукт") {
                         val nameProdLb = label("Название продукта") { alignment = Pos.BOTTOM_CENTER }
                         val nameProdFd = textfield {
                             promptText = "Название продукта"
-                            addEventHandler(KeyEvent.KEY_RELEASED) { name = text }
+                            filterInput { it.controlNewText.matches(Regex("""[а-яА-ЯёЁ./]+""")) }
                         }
                         val priceKgDayLb = label("Цена за кг / день") { alignment = Pos.BOTTOM_CENTER }
                         val priceKgDayFd = textfield {
                             promptText = "Цена за кг / день"
-                            addEventHandler(KeyEvent.KEY_RELEASED) { priceDay = text }
+                            filterInput { it.controlNewText.matches(Regex("""\d+"""))  || it.controlNewText.matches(Regex("""\d+\.""")) || it.controlNewText.matches(Regex("""\d+\.\d+""")) }
                         }
                         val priceKgNightLb = label("Цена за кг / ночь") { alignment = Pos.BOTTOM_CENTER }
                         val priceKgNightFd =textfield {
                             promptText = "Цена за кг / ночь"
-                            addEventHandler(KeyEvent.KEY_RELEASED) { priceNight = text }
+                            filterInput { it.controlNewText.matches(Regex("""\d+"""))  || it.controlNewText.matches(Regex("""\d+\.""")) || it.controlNewText.matches(Regex("""\d+\.\d+""")) }
+                        }
+                        val addB = button("Добавить") {
+                            translateY = 40.0
+                            translateX = -75.0
+                            action { // Отправляем в бд данные о новом продукте
+                                if (cond != null && nameProdFd.text != "" && priceKgDayFd.text != "" && priceKgNightFd.text != "") {
+                                    val dbHandler = DatabaseHandler()
+                                    val answer = if (cond as Boolean) dbHandler.addUnFinishProduct(nameProdFd.text.trim(), priceKgDayFd.text.trim(), priceKgNightFd.text.trim())
+                                    else dbHandler.addFinishProduct(nameProdFd.text.trim(), priceKgDayFd.text.trim(), priceKgNightFd.text.trim())
+                                    if (answer > 0) style { borderColor = multi(box(Paint.valueOf("#4caf50"))) }
+                                    else style { borderColor = multi(box(Paint.valueOf("#f44336"))) }
+                                    cond = null
+                                    nameProdFd.text = ""
+                                    priceKgDayFd.text = ""
+                                    priceKgNightFd.text = ""
+                                    finishedProd.isSelected = false
+                                    unfinishedProd.isSelected = false
+                                }  else style { borderColor = multi(box(Paint.valueOf("#f44336"))) }
+                            }
                         }
                         // Label
                         setSizeForLabel(150.0, 25.0, nameProdLb)
@@ -59,21 +75,12 @@ class AddProduct : Fragment("Продукт") {
                         setSizeForTextField(150.0, 25.0, priceKgNightFd)
                         finishedProd.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED) { if (finishedProd.isSelected) { cond = false } }
                         unfinishedProd.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_CLICKED) { if (unfinishedProd.isSelected) { cond = true } }
-                    }
-                    val addB = button("Добавить") {
-                        translateY = 85.0
-                        action { // Отправляем в бд данные о новом продукте
-                            val dbHandler = DatabaseHandler()
-                            if (cond != null) {
-                                if (cond as Boolean) dbHandler.addUnFinishProduct(name, priceDay, priceNight)
-                                else dbHandler.addFinishProduct(name, priceDay, priceNight)
-                            }
-                        }
+                        // Button
+                        setSizeForButton(300.0, 25.0, addB)
                     }
                     // Label
                     setSizeForLabel(300.0, 50.0, addProdLb)
-                    // Button
-                    setSizeForButton(300.0, 25.0, addB)
+
                 }
             }
         }
